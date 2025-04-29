@@ -91,9 +91,21 @@ freq(data_1974$d) # Metropolitans Departments
 freq(data_1974$redechi) # Weighting variable ?
 
 
-weighted_occupation <- data_1974 %>%
+weighted_occupation <- data_1974 %>% # Testing weighted variable
   group_by(Occupation) %>%
   summarise(weighted_n = sum(redechi, na.rm = TRUE)) %>%
   mutate(weighted_prop = weighted_n / sum(weighted_n))
 
-weighted_occupation
+
+data_1974 <- data_1974 %>% # Weighted Employment rate at Departemental level
+  group_by(d) %>%
+  mutate(
+    Active_w = sum((Active == 1) * redechi), 
+    Unemployed_w = sum((Unemployed == 1) * redechi), 
+    Unemployment = Unemployed_w / (Active_w + Unemployed_w) 
+  ) %>%
+  ungroup()
+
+table(data_1974$d, data_1974$Unemployment)
+
+mean(data_1974$Unemployment)
