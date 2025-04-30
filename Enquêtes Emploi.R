@@ -74,7 +74,8 @@ data_1988 <- data_1988 %>%
       cstoti %in% c("81", "82") ~ "Inactive")
   )
 
-summarytools::freq(data_1988$extri)
+summarytools::freq(data_1988$extri) # Weighting variable 
+summarytools::freq(data_1988$dep)   # Departement variable
 
 wtd.table(data_1988$Occupation, weights = data_1988$extri) # Weighting thanks to questionr package
 prop.table(wtd.table(data_1988$Occupation, weights = data_1988$extri)) # Weighted %
@@ -106,30 +107,28 @@ dep_1974 <- data_1974 %>%
 
 write_parquet(dep_1974, "dep_1974.parquet")
 
-
-
-
-
-
 dep_1988 <- data_1988 %>%
-  group_by(d) %>%
+  group_by(dep) %>%
   summarise(
-    UnemploymentRate = sum((Unemployed == 1) * redechi, na.rm = TRUE) / 
-                       sum(((Active == 1) | (Unemployed == 1)) * redechi, na.rm = TRUE),
-    
-    InactiveShare = sum((Occupation == "Inactive")) / 
-                    sum((Age >= 18 & Age <= 64)),
-    
-    YoungShare = sum((Age >= 18 & Age <= 30)) / 
-                 sum(Age >= 18),
-    
-    ExecutiveShare = sum(Occupation == "Executive" & Active == 1) / sum(Active == 1),
-    WorkersShare = sum(Occupation == "Worker" & Active == 1) / sum(Active == 1), 
-    FarmersShare = sum(Occupation == "Farmer" & Active == 1) / sum(Active == 1),
-    
-    HighEducShare = sum(Diploma == "High") / 
-                         sum(Study == 0 & Age >= 18 & Age <= 64),  # High-educated share among 18-64, active, and not studying
-    
-    RuralShare = sum(Rural == 1) / n()
+    UnemploymentRate = sum((Unemployed == 1) * extri) / 
+                       sum(((Active == 1) | (Unemployed == 1)) * extri),
+
+    InactiveShare = sum((Occupation == "Inactive") * extri) / 
+                    sum((Age >= 18 & Age <= 64) * extri),
+  
+    YoungShare = sum((Age >= 18 & Age <= 30) * extri) / 
+                 sum((Age >= 18) * extri), 
+
+    ExecutiveShare = sum((Occupation == "Executive" & Active == 1) * extri) / sum((Active == 1) * extri),
+    WorkersShare = sum((Occupation == "Worker" & Active == 1) * extri) / sum((Active == 1) * extri), 
+    FarmersShare = sum((Occupation == "Farmer" & Active == 1) * extri) / sum((Active == 1) * extri),
+
+    HighEducShare = sum((Diploma == "High") * extri) / 
+      sum((Study == 0 & Age >= 18 & Age <= 64) * extri),  # High-educated share among 18-64, active, and not studying
+
+    RuralShare = sum((Rural == 1) * extri) / sum(extri)
   ) %>%
   ungroup()
+
+write_parquet(dep_1974, "1974/dep_1974.parquet")
+write_parquet(dep_1988, "1988/dep_1988.parquet")
