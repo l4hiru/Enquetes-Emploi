@@ -16,6 +16,7 @@ library(questionr)
 #I) Data --------------------------------------------------------------------------
 
 data_1974 <- read_dta("1974/ee74.dta")
+data_1988 <- read_dta("1988/ee88qi.dta")
 
 #II) Variables --------------------------------------------------------------------
 
@@ -46,7 +47,7 @@ data_1974 <- data_1974 %>%
 
 freq(data_1974$redechi) # Weighting variable
 
-#III) Departemental dataset
+#III) Departemental dataset --------------------------------------------------------------
 
 dep_1974 <- data_1974 %>%
   group_by(d) %>%
