@@ -11,13 +11,11 @@ library(summarytools) # For frequency tables (freq)
 library(reshape2)     # For reshaping data (melt, cast)
 library(stargazer)    # For regression tables (if needed)
 library(plm)          # For panel data models (if needed)
+library(questionr)
 
 #I) Data --------------------------------------------------------------------------
 
 data_1974 <- read_dta("1974/ee74.dta")
-
-data_1974 <- data_1974 %>%
-  filter(ad1 > 18) # Only individuals with 18 yo or more (potential voters)
 
 #II) Variables --------------------------------------------------------------------
 
@@ -35,7 +33,18 @@ data_1974 <- data_1974 %>%
   mutate(
     Young = if_else(ad1 %in% sprintf("%02d", 18:30), 1, 0)
   )
+
 freq(data_1974$Young)
+
+data_1974$Age <- as.numeric(data_1974$ad1)
+
+freq(data_1974$et)
+
+data_1974 <- data_1974 %>%
+  mutate(
+    Study = as.factor(et))
+
+freq(data_1974$et)
 
 freq(data_1974$eg) # General Diploma
 freq(data_1974$ep) # Profesionnal Diploma
@@ -68,6 +77,9 @@ data_1974 <- data_1974 %>%
 freq(data_1974$Active)
 freq(data_1974$Unemployed)
 
+wtd.table(data_1974$Unemployed, weights = data_1974$redechi) # Weighting thanks to questionr package
+prop.table(wtd.table(data_1974$Unemployed, weights = data_1974$redechi)) # Weighted %
+
 freq(data_1974$cse1) # Occupation
 
 data_1974 <- data_1974 %>%
@@ -91,21 +103,42 @@ freq(data_1974$d) # Metropolitans Departments
 freq(data_1974$redechi) # Weighting variable ?
 
 
-weighted_occupation <- data_1974 %>% # Testing weighted variable
-  group_by(Occupation) %>%
-  summarise(weighted_n = sum(redechi, na.rm = TRUE)) %>%
-  mutate(weighted_prop = weighted_n / sum(weighted_n))
+freq(data_1974$bcnd)
 
-
-data_1974 <- data_1974 %>% # Weighted Employment rate at Departemental level
+dep_1974 <- data_1974 %>%
   group_by(d) %>%
-  mutate(
-    Active_w = sum((Active == 1) * redechi), 
-    Unemployed_w = sum((Unemployed == 1) * redechi), 
-    Unemployment = Unemployed_w / (Active_w + Unemployed_w) 
+  summarise(
+    UnemploymentRate = sum((Unemployed == 1) * redechi, na.rm = TRUE) / 
+                       sum(((Active == 1) | (Unemployed == 1)) * redechi, na.rm = TRUE),
+    
+    InactiveShare = sum((Occupation == "Inactive")) / 
+                    sum((Age >= 18 & Age <= 64)),
+    
+    YoungShare = sum((Age >= 18 & Age <= 30)) / 
+                 sum(Age >= 18),
+    
+    ExecutiveShare = sum(Occupation == "Executive" & Active == 1) / sum(Active == 1),
+    WorkersShare = sum(Occupation == "Workers" & Active == 1) / sum(Active == 1), 
+    FarmersShare = sum(Occupation == "Farmers" & Active == 1) / sum(Active == 1),
+    
+    HighEducShare = sum(Diploma == "High") / 
+                         sum(Study == 0 & Age >= 18 & Age <= 64),  # High-educated share among 18-64, active, and not studying
+    
+    RuralShare = sum(Rural == 1) / n()
   ) %>%
   ungroup()
 
-table(data_1974$d, data_1974$Unemployment)
+mean(dep_1974$YoungShare)
 
-mean(data_1974$Unemployment)
+freq(data_1974$redechi)
+
+table(data_1974$d, data_1974$UnemploymentRate)
+
+freq(data_1974$Occupation)
+freq(data_1974$Active)
+
+freq(data_1974$Age)
+
+detach("package:questionr", unload = TRUE)
+
+mean(dep_1974$UnemploymentRate)
