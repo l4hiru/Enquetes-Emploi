@@ -102,14 +102,12 @@ dep_1974 <- data_1974 %>%
     WorkersShare = sum(Occupation == "Worker" & Active == 1) / sum(Active == 1), 
     FarmersShare = sum(Occupation == "Farmer" & Active == 1) / sum(Active == 1),
     
-    HighEducShare = sum(Diploma == "High") / 
+    HighEducShare = sum(Diploma == "High", na.rm = TRUE) / 
                          sum(Study == 0 & Age >= 18 & Age <= 64),  # High-educated share among 18-64, active, and not studying
     
     RuralShare = sum(Rural == 1) / n()
   ) %>%
   ungroup()
-
-write_parquet(dep_1974, "dep_1974.parquet")
 
 dep_1988 <- data_1988 %>%
   group_by(dep) %>%
@@ -127,7 +125,7 @@ dep_1988 <- data_1988 %>%
     WorkersShare = sum((Occupation == "Worker" & Active == 1) * extri) / sum((Active == 1) * extri), 
     FarmersShare = sum((Occupation == "Farmer" & Active == 1) * extri) / sum((Active == 1) * extri),
 
-    HighEducShare = sum((Diploma == "High") * extri) / 
+    HighEducShare = sum((Diploma == "High") * extri, na.rm = TRUE) / 
       sum((Study == 0 & Age >= 18 & Age <= 64) * extri),  # High-educated share among 18-64, active, and not studying
 
     RuralShare = sum((Rural == 1) * extri) / sum(extri)
