@@ -30,7 +30,7 @@ data_1974 <- data_1974 %>%
       dip %in% c("", "00", "10") ~ "Low",
       dip %in% c("21", "22", "23", "30", "31", "32", "33") ~ "Medium",
       dip %in% c("40", "41", "42", "43", "44", "45", "46", "50", "51", "52", "53", "54", 
-      "60", "61") ~ "High", 
+      "60", "61") ~ "High", # N.B à partir de DDIP de l'année 1988!
       dip %in% c("90") ~ NA_character_
     ),
     Active = ifelse(taec == "1", 1, 0),
@@ -60,7 +60,7 @@ data_1988 <- data_1988 %>%
     Diploma = case_when(
       dipl %in% c("10", "11", "30", "31", "32", "33", "40", "41", "42", "43") ~ "High",
       dipl %in% c("50", "51", "60") ~ "Medium",
-      dipl %in% c("70", "71", "") ~ "Low",
+      dipl %in% c("70", "71") ~ "Low",
     ),
     Diploma = factor(Diploma, levels = c("Low", "Medium", "High")),
     Active = ifelse(actbit == "1", 1, 0),
@@ -75,6 +75,8 @@ data_1988 <- data_1988 %>%
       cstoti %in% c("61", "66", "69") ~ "Worker",
       cstoti %in% c("71", "72", "73", "76", "81", "82") ~ "Inactive")
   )
+
+freq(data_1988$Diploma)
 
 summarytools::freq(data_1988$extri) # Weighting variable 
 summarytools::freq(data_1988$dep)   # Departement variable
