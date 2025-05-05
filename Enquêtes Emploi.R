@@ -27,11 +27,12 @@ data_1974 <- data_1974 %>%
     Study = as.factor(et),
     Rural = ifelse(s74 %in% c("0", "1"), 1, 0),
     Diploma = case_when(
-      eg %in% c("3", "4", "5", "6", "7", "8") | ep %in% c("6", "7", "8", "9") ~ "High",
-      eg == "2" | ep %in% c("1", "2", "3", "4", "5") ~ "Medium",
-      TRUE ~ "Low"
+      dip %in% c("", "00", "10") ~ "Low",
+      dip %in% c("21", "22", "23", "30", "31", "32", "33") ~ "Medium",
+      dip %in% c("40", "41", "42", "43", "44", "45", "46", "50", "51", "52", "53", "54", 
+      "60", "61") ~ "High", 
+      dip %in% c("90") ~ NA_character_
     ),
-    Diploma = factor(Diploma, levels = c("Low", "Medium", "High")),
     Active = ifelse(taec == "1", 1, 0),
     Unemployed = ifelse(taec == "2", 1, 0),
     Occupation = case_when(
@@ -45,6 +46,8 @@ data_1974 <- data_1974 %>%
       TRUE ~ NA_character_
     )
   )
+
+freq(data_1974$Diploma)
 
 freq(data_1974$redechi) # Weighting variable
 
