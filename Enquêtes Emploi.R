@@ -70,8 +70,7 @@ data_1988 <- data_1988 %>%
       cstoti %in% c("41", "46", "47", "48") ~ "PI",
       cstoti %in% c("51", "54", "55", "56") ~ "Employee",
       cstoti %in% c("61", "66", "69") ~ "Worker",
-      cstoti %in% c("71", "72", "73", "76") ~ "Pensioner",
-      cstoti %in% c("81", "82") ~ "Inactive")
+      cstoti %in% c("71", "72", "73", "76", "81", "82") ~ "Inactive")
   )
 
 summarytools::freq(data_1988$extri) # Weighting variable 
