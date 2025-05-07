@@ -22,6 +22,8 @@ data_1994 <- read_dta("1994/empl94qi.dta")
 
 #II) Variables --------------------------------------------------------------------
 
+# 1974 Year
+
 data_1974 <- data_1974 %>%
   mutate(
     Age = as.numeric(ad1),
@@ -52,6 +54,7 @@ freq(data_1974$Diploma)
 
 freq(data_1974$redechi) # Weighting variable
 
+# 1988 Year
 
 data_1988 <- data_1988 %>%
   mutate(
@@ -85,7 +88,37 @@ summarytools::freq(data_1988$dep)   # Departement variable
 wtd.table(data_1988$Occupation, weights = data_1988$extri) # Weighting thanks to questionr package
 prop.table(wtd.table(data_1988$Occupation, weights = data_1988$extri)) # Weighted %
 
+# 1994 Year 
+
+data_1994 <- data_1994 %>%
+  mutate(
+    Rural = ifelse(tur5 %in% c("1"), 1, 0), 
+    Age = as.numeric(agd), 
+    Study = ifelse(ddipl1 == "7", 1, 0),
+    Diploma = case_when(
+      ddipl1 %in% c("4", "5", "6") ~ "High",
+      ddipl1 %in% c("2", "3") ~ "Medium",
+      ddipl1 %in% c("1") ~ "Low",
+    ),
+    Diploma = factor(Diploma, levels = c("Low", "Medium", "High")),
+    Active = ifelse(act == "1", 1, 0),
+    Inactive = ifelse(act == "3", 1, 0),
+    Unemployed = ifelse(act %in% c("2"), 1, 0),
+    Occupation = case_when(
+      dcstot %in% c("1") ~ "Farmer",
+      dcstot %in% c("2") ~ "Craftmen",
+      dcstot %in% c("3") ~ "Executive",
+      dcstot %in% c("4") ~ "PI",
+      dcstot %in% c("5") ~ "Employee",
+      dcstot %in% c("6") ~ "Worker",
+      dcstot %in% c("7", "8") ~ "Inactive")
+  )
+
+freq(data_1994$extri)
+
 #III) Departemental dataset --------------------------------------------------------------
+
+# 1974 Year
 
 dep_1974 <- data_1974 %>%
   group_by(d) %>%
@@ -110,6 +143,8 @@ dep_1974 <- data_1974 %>%
   ) %>%
   ungroup()
 
+# 1988 Year
+
 dep_1988 <- data_1988 %>%
   group_by(dep) %>%
   summarise(
@@ -123,8 +158,8 @@ dep_1988 <- data_1988 %>%
                  sum((Age >= 18) * extri), 
 
     ExecutiveShare = sum((Occupation == "Executive" & Active == 1) * extri) / sum((Active == 1) * extri),
-    WorkersShare = sum((Occupation == "Worker" & Active == 1) * extri) / sum((Active == 1) * extri), 
-    FarmersShare = sum((Occupation == "Farmer" & Active == 1) * extri) / sum((Active == 1) * extri),
+    WorkerShare = sum((Occupation == "Worker" & Active == 1) * extri) / sum((Active == 1) * extri), 
+    FarmerShare = sum((Occupation == "Farmer" & Active == 1) * extri) / sum((Active == 1) * extri),
 
     HighEducShare = sum((Diploma == "High") * extri, na.rm = TRUE) / 
       sum((Study == 0 & Age >= 18 & Age <= 64) * extri),  # High-educated share among 18-64, active, and not studying
@@ -133,5 +168,38 @@ dep_1988 <- data_1988 %>%
   ) %>%
   ungroup()
 
+# 1994 Year
+
+dep_1994 <- data_1994 %>%
+  group_by(dep) %>%
+  summarise(
+    UnemploymentRate = 100 * sum((Unemployed == 1) * extri) / 
+                             sum(((Active == 1) | (Unemployed == 1)) * extri),
+
+    InactiveShare = 100 * sum((Occupation == "Inactive") * extri) / 
+                          sum((Age >= 18 & Age <= 64) * extri),
+
+    YoungShare = 100 * sum((Age >= 18 & Age <= 30) * extri) / 
+                       sum((Age >= 18) * extri), 
+
+    ExecutiveShare = 100 * sum((Occupation == "Executive") * extri) / 
+                            sum((Active == 1) * extri),
+
+    WorkerShare = 100 * sum((Occupation == "Worker") * extri) / 
+                         sum((Active == 1) * extri),
+
+    FarmerShare = 100 * sum((Occupation == "Farmer") * extri) / 
+                         sum((Active == 1) * extri),
+
+    HighEducShare = 100 * sum((Diploma == "High") * extri, na.rm = TRUE) / 
+                           sum((Study == 0 & Age >= 18 & Age <= 64) * extri),
+
+    RuralShare = 100 * sum((Rural == 1) * extri) / 
+                       sum(extri)
+  ) %>%
+  ungroup()
+
+
 write_parquet(dep_1974, "1974/dep_1974.parquet")
 write_parquet(dep_1988, "1988/dep_1988.parquet")
+write_parquet(dep_1994, "1994/dep_1994.parquet")
