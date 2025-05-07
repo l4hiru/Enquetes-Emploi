@@ -21,6 +21,7 @@ data_1988 <- read_dta("1988/ee88qi.dta")
 data_1994 <- read_dta("1994/empl94qi.dta")
 data_2001 <- read_dta("2001/empl01qi.dta")
 data_2006 <- read_dta("2006/indiv064.dta") # Last quarter of 2006 Employment Survey
+data_2011 <- read_dta("2011/INDIV114.dta")
 
 
 #II) Variables --------------------------------------------------------------------
@@ -175,6 +176,32 @@ data_2006 <- data_2006 %>%
   )
 
 
+# 2011 (last quarter)
+
+data_2011 <- data_2011 %>%
+  mutate(
+    Rural = ifelse(TUR5 %in% c("1"), 1, 0), 
+    Age = as.numeric(AG), 
+    Study = ifelse(FORTER == "2", 1, 0),
+    Diploma = case_when(
+      DDIPL %in% c("1", "3", "4") ~ "High",
+      DDIPL %in% c("5", "6") ~ "Medium",
+      DDIPL %in% c("7") ~ "Low",
+    ),
+    Diploma = factor(Diploma, levels = c("Low", "Medium", "High")),
+    Active = ifelse(ACTANC == "1", 1, 0),
+    Inactive = ifelse(ACTANC == "3", 1, 0),
+    Unemployed = ifelse(ACTANC %in% c("2"), 1, 0),
+    Occupation = case_when(
+      CSTOTR %in% c("1") ~ "Farmer",
+      CSTOTR %in% c("2") ~ "Craftmen",
+      CSTOTR %in% c("3") ~ "Executive",
+      CSTOTR %in% c("4") ~ "PI",
+      CSTOTR %in% c("5") ~ "Employee",
+      CSTOTR %in% c("6") ~ "Worker",
+      CSTOTR %in% c("7", "8") ~ "Inactive")
+  )
+
 #III) Departemental dataset --------------------------------------------------------------
 
 # 1974 Year
@@ -320,8 +347,40 @@ dep_2006 <- data_2006 %>%
   ) %>%
   ungroup()
 
+# 2011 Year 
+
+dep_2011 <- data_2011 %>%
+  group_by(DEP) %>%
+  summarise(
+    UnemploymentRate = 100 * sum((Unemployed == 1) * EXTRI, na.rm = TRUE) / 
+                             sum(((Active == 1) | (Unemployed == 1)) * EXTRI, na.rm = TRUE),
+
+    InactiveShare = 100 * sum((Occupation == "Inactive") * EXTRI, na.rm = TRUE) / 
+                          sum((Age >= 18 & Age <= 64) * EXTRI, na.rm = TRUE),
+
+    YoungShare = 100 * sum((Age >= 18 & Age <= 30) * EXTRI, na.rm = TRUE) / 
+                       sum((Age >= 18) * EXTRI, na.rm = TRUE), 
+
+    ExecutiveShare = 100 * sum((Occupation == "Executive") * EXTRI, na.rm = TRUE) / 
+                            sum((Active == 1) * EXTRI, na.rm = TRUE),
+
+    WorkerShare = 100 * sum((Occupation == "Worker") * EXTRI, na.rm = TRUE) / 
+                         sum((Active == 1) * EXTRI, na.rm = TRUE),
+
+    FarmerShare = 100 * sum((Occupation == "Farmer") * EXTRI, na.rm = TRUE) / 
+                         sum((Active == 1) * EXTRI, na.rm = TRUE),
+
+    HighEducShare = 100 * sum((Diploma == "High") * EXTRI, na.rm = TRUE) / 
+                           sum((Study == 0 & Age >= 18 & Age <= 64) * EXTRI, na.rm = TRUE),
+
+    RuralShare = 100 * sum((Rural == 1) * EXTRI, na.rm = TRUE) / 
+                       sum(EXTRI, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
 write_parquet(dep_1974, "1974/dep_1974.parquet")
 write_parquet(dep_1988, "1988/dep_1988.parquet")
 write_parquet(dep_1994, "1994/dep_1994.parquet")
 write_parquet(dep_2001, "2001/dep_2001.parquet")
 write_parquet(dep_2006, "2006/dep_2006.parquet")
+write_parquet(dep_2011, "2011/dep_2006.parquet")
