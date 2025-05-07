@@ -18,6 +18,7 @@ library(questionr)
 
 data_1974 <- read_dta("1974/ee74.dta")
 data_1988 <- read_dta("1988/ee88qi.dta")
+data_1994 <- read_dta("1994/empl94qi.dta")
 
 #II) Variables --------------------------------------------------------------------
 
