@@ -433,3 +433,67 @@ data_2000 <- data_2000 %>%
     ))
 
 freq(data_2000$Origin)
+
+
+
+
+immi_2000 <- data_2000 %>%
+  filter(Nationality == "Immigrant") %>%
+  group_by(Origin, Diploma) %>%
+  summarise(
+    total_imm_2000 = sum(extri, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  rename(
+    Origin_group = Origin
+  )
+
+sum(immi_2000$total_imm_2000)
+
+
+native_2000 <- data_2000 %>%
+  filter(Nationality == "Native") %>%
+  group_by(Diploma) %>%
+  summarise(
+    total_native_2000 = sum(extri, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+naturalized_2000 <- data_2000 %>%
+  filter(Nationality == "Naturalized") %>%
+  group_by(Diploma) %>%
+  summarise(
+    total_naturalized_2000 = sum(extri, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+shift_2000 <- bind_rows(
+  immi_2000 %>%
+    mutate(
+      Nationality = "Immigrant",
+      Year = as.factor(2000),
+      Count = total_imm_2000
+    ) %>%
+    select(Nationality, Origin_group, Diploma, Count, Year),
+
+  native_2000 %>%
+    mutate(
+      Nationality = "Native",
+      Origin_group = "French",
+      Year = as.factor(2000),
+      Count = total_native_2000
+    ) %>%
+    select(Nationality, Origin_group, Diploma, Count, Year),
+
+  naturalized_2000 %>%
+    mutate(
+      Nationality = "Naturalized",
+      Origin_group = "French",
+      Year = as.factor(2000),
+      Count = total_naturalized_2000
+    ) %>%
+    select(Nationality, Origin_group, Diploma, Count, Year)
+)
+
+write_parquet(shift_2000, "shift_2000.parquet")
