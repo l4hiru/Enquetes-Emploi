@@ -384,3 +384,52 @@ write_parquet(dep_1994, "1994/dep_1994.parquet")
 write_parquet(dep_2001, "2001/dep_2001.parquet")
 write_parquet(dep_2006, "2006/dep_2006.parquet")
 write_parquet(dep_2011, "2011/dep_2011.parquet")
+
+
+### --- SHIFT-SHARE IV (SHIFT COMPUTATION) --- ###
+
+data_2000 <- read_dta("2000/empl00qi.dta")
+pond_2000 <- read_dta("2000/POND0000.dta")
+
+data_2000 <- data_2000 %>%
+  mutate(
+    Nationality = case_when(
+      n == "01" ~ "Native",                     # Français de naissance
+      n == "02" ~ "Naturalized",               # Français par acquisition
+      n %in% c("11", "12", "13", "14", "15", 
+               "21", "22", "23", "24", "25", "26", "27", "28", "29", 
+               "31", "32", 
+               "41", "42", "43", "44", "45", "46", "47", "48",
+               "51", "52", "60") ~ "Immigrant", # Tous les codes étrangers
+    )
+  )
+
+freq(data_2000$Nationality)
+
+
+freq(data_2000$ddipl)
+
+data_2000 <- data_2000 %>%
+  mutate(Diploma = case_when(
+    ddipl  == "" ~ NA_character_,  # < 15 yo, N.A
+    ddipl  %in% c("7") ~ "Low",  # No diploma, CEP
+    ddipl  %in% c("5", "6") ~ "Mid",  # BEPC, BEP, CAP, etc.
+    ddipl  %in% c("1", "3", "4") ~ "High",  # BAC or more
+  )) %>%
+  mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
+
+freq(data_2000$Diploma)
+
+data_2000 <- data_2000 %>%
+  mutate(
+    Origin = case_when(
+      n %in% c("21", "31", "32") ~ "South_Europe",
+      n %in% c("22", "23", "24", "25", "26", "27", "28", "29", 
+               "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
+      n %in% c("11", "12", "13") ~ "Maghreb",
+      n == "14" ~ "Africa",
+      n %in%  c("15", "45") ~ "Asia",
+      n %in% c("51", "52", "60") ~ "Other"
+    ))
+
+freq(data_2000$Origin)
