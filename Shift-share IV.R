@@ -134,9 +134,9 @@ shift_2000 <- bind_rows(
 
 data_2005 <- read_dta("2005/indiv051.dta")
 
-data_2005_1 <- read_dta("2005/indiv052.dta")
-data_2005_2 <- read_dta("2005/indiv053.dta")
-data_2005_3 <- read_dta("2005/indiv054.dta")
+data_2005_2 <- read_dta("2005/indiv052.dta")
+data_2005_3 <- read_dta("2005/indiv053.dta")
+data_2005_4 <- read_dta("2005/indiv054.dta")
 
 freq(data_2005$NFR)
 
@@ -236,3 +236,103 @@ shift_2005 <- bind_rows(
     ) %>%
     select(Nationality, Origin_group, Diploma, Count, Year)
 )
+
+
+
+
+
+
+
+process_quarter <- function(file_path, year = 2005) {
+  
+  data <- read_dta(file_path)
+  
+  # Recodage des nationalités
+  data <- data %>%
+    mutate(Nationality = recode(NFR,
+                                "1" = "Native",
+                                "2" = "Naturalized",
+                                "3" = "Immigrant"))
+  
+  # Recodage des diplômes
+  data <- data %>%
+    mutate(Diploma = case_when(
+      DDIPL == "" ~ NA_character_,
+      DDIPL %in% c("7") ~ "Low",
+      DDIPL %in% c("5", "6") ~ "Mid",
+      DDIPL %in% c("1", "3", "4") ~ "High"
+    )) %>%
+    mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
+  
+  # Recodage des origines
+  data <- data %>%
+    mutate(
+      Origin = case_when(
+        NAT28 %in% c("21", "31", "32") ~ "South_Europe",
+        NAT28 %in% c("22", "23", "24", "25", "26", "27", "28", "29", 
+                     "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
+        NAT28 %in% c("11", "12", "13") ~ "Maghreb",
+        NAT28 == "14" ~ "Africa",
+        NAT28 %in%  c("15", "45") ~ "Asia",
+        NAT28 %in% c("51", "52", "60") ~ "Other"
+      )
+    )
+  
+  # Agrégation par catégorie
+  immi <- data %>%
+    filter(Nationality == "Immigrant") %>%
+    group_by(Origin, Diploma) %>%
+    summarise(
+      Count = sum(EXTRI, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Nationality = "Immigrant",
+      Origin_group = Origin
+    )
+  
+  native <- data %>%
+    filter(Nationality == "Native") %>%
+    group_by(Diploma) %>%
+    summarise(
+      Count = sum(EXTRI, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Nationality = "Native",
+      Origin_group = "French"
+    )
+  
+  naturalized <- data %>%
+    filter(Nationality == "Naturalized") %>%
+    group_by(Diploma) %>%
+    summarise(
+      Count = sum(EXTRI, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Nationality = "Naturalized",
+      Origin_group = "French"
+    )
+  
+  bind_rows(immi, native, naturalized) %>%
+    mutate(Year = as.factor(year)) %>%
+    select(Nationality, Origin_group, Diploma, Count, Year)
+}
+
+files_2005 <- c("2005/indiv051.dta", 
+                "2005/indiv052.dta", 
+                "2005/indiv053.dta", 
+                "2005/indiv054.dta")
+
+# Appliquer la fonction à tous les fichiers
+all_quarters <- lapply(files_2005, process_quarter)
+
+# Fusionner tous les trimestres en une seule base
+shift_2005_all <- bind_rows(all_quarters)
+
+
+shift_2005_avg <- shift_2005_all %>%
+  group_by(Nationality, Origin_group, Diploma) %>%
+  summarise(Avg_Annual_Count = mean(Count, na.rm = TRUE), .groups = "drop") %>%
+  mutate(Year = as.factor(2005))
