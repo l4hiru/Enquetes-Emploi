@@ -544,7 +544,104 @@ shift_2015_avg <- shift_2015_all %>%
   summarise(Avg_Annual_Count = mean(Count, na.rm = TRUE), .groups = "drop") %>%
   mutate(Year = as.factor(2015))
 
+write_parquet(shift_2015_avg, "shift_2015.parquet")
 
 
+#IV) 2020 Year 
+
+process_quarter <- function(file_path, year = 2020) {
+  
+  data <- read_dta(file_path)
+  
+  # Recodage des nationalités
+
+  data <- data %>%
+    mutate(Nationality = recode(nfrred,
+                                "1" = "Native",
+                                "2" = "Naturalized",
+                                "3" = "Immigrant"))
+  
+  # Recodage des diplômes
+  data <- data %>%
+    mutate(Diploma = case_when(
+      ddipl == "" ~ NA_character_,
+      ddipl %in% c("7") ~ "Low",
+      ddipl %in% c("5", "6") ~ "Mid",
+      ddipl %in% c("1", "3", "4") ~ "High",
+    )) %>%
+    mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
+  
+  # Recodage des origines
+  data <- data %>%
+    mutate(
+      Origin = case_when(
+        nat14 %in% c("11", "12", "13") ~ "South_Europe",
+        nat14 %in% c("14", "15") ~ "Europe",
+        nat14 %in% c("21", "22", "23") ~ "Maghreb",
+        nat14 == "24" ~ "Africa",
+        nat14 %in%  c("32", "51") ~ "Asia",
+        nat14 %in% c("41") ~ "America",
+        nat14 %in% c("31") ~ "Turkey",
+      )
+    )
+  
+  # Agrégation par catégorie
+  immi <- data %>%
+    filter(Nationality == "Immigrant") %>%
+    group_by(Origin, Diploma) %>%
+    summarise(
+      Count = sum(extri, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Nationality = "Immigrant",
+      Origin_group = Origin
+    )
+  
+  native <- data %>%
+    filter(Nationality == "Native") %>%
+    group_by(Diploma) %>%
+    summarise(
+      Count = sum(extri, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Nationality = "Native",
+      Origin_group = "French"
+    )
+  
+  naturalized <- data %>%
+    filter(Nationality == "Naturalized") %>%
+    group_by(Diploma) %>%
+    summarise(
+      Count = sum(extri, na.rm = TRUE),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      Nationality = "Naturalized",
+      Origin_group = "French"
+    )
+  
+  bind_rows(immi, native, naturalized) %>%
+    mutate(Year = as.factor(year)) %>%
+    select(Nationality, Origin_group, Diploma, Count, Year)
+}
+
+files_2020 <- c("2020/INDIV201.dta", 
+                "2020/INDIV202.dta", 
+                "2020/INDIV203.dta", 
+                "2020/INDIV204.dta")
+
+# Appliquer la fonction à tous les fichiers
+all_quarters <- lapply(files_2020, process_quarter)
+
+# Fusionner tous les trimestres en une seule base
+shift_2020_all <- bind_rows(all_quarters)
 
 
+shift_2020_avg <- shift_2020_all %>%
+  group_by(Nationality, Origin_group, Diploma) %>%
+  summarise(Avg_Annual_Count = mean(Count, na.rm = TRUE), .groups = "drop") %>%
+  mutate(Year = as.factor(2020))
+
+write_parquet(shift_2020_avg, "shift_2020.parquet")
