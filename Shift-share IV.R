@@ -380,7 +380,7 @@ process_quarter <- function(file_path, year = 2010) {
         NAT28 %in% c("11", "12", "13") ~ "Maghreb",
         NAT28 == "14" ~ "Africa",
         NAT28 %in%  c("15", "45") ~ "Asia",
-        NAT28 %in% c("51", "52", "60", "61") ~ "Other"
+        NAT28 %in% c("51", "52") ~ "America"
       )
     )
   
