@@ -166,13 +166,13 @@ freq(data_2005$NAT28)
 data_2005 <- data_2005 %>%
   mutate(
     Origin = case_when(
-      NAT28 %in% c("21", "31", "32") ~ "South_Europe",
+      NAT28 %in% c("21", "31", "32") ~ "South Europe",
       NAT28 %in% c("22", "23", "24", "25", "26", "27", "28", "29", 
                "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
       NAT28 %in% c("11", "12", "13") ~ "Maghreb",
       NAT28 == "14" ~ "Africa",
       NAT28 %in%  c("15", "45") ~ "Asia",
-      NAT28 %in% c("51", "52", "60") ~ "Other"
+      NAT28 %in% c("51", "52") ~ "America"
     ))
 
 freq(data_2005$Origin)
@@ -268,15 +268,14 @@ process_quarter <- function(file_path, year = 2005) {
   data <- data %>%
     mutate(
       Origin = case_when(
-        NAT28 %in% c("21", "31", "32") ~ "South_Europe",
+        NAT28 %in% c("21", "31", "32") ~ "South Europe",
         NAT28 %in% c("22", "23", "24", "25", "26", "27", "28", "29", 
-                     "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
+                 "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
         NAT28 %in% c("11", "12", "13") ~ "Maghreb",
         NAT28 == "14" ~ "Africa",
         NAT28 %in%  c("15", "45") ~ "Asia",
-        NAT28 %in% c("51", "52", "60") ~ "Other"
-      )
-    )
+        NAT28 %in% c("51", "52") ~ "America"
+      ))
   
   # Agrégation par catégorie
   immi <- data %>%
@@ -332,9 +331,9 @@ all_quarters <- lapply(files_2005, process_quarter)
 shift_2005_all <- bind_rows(all_quarters)
 
 
-shift_2005_avg <- shift_2005_all %>%
+shift_2005_avg <- shift_2005_all %>%                # Lot of N.As for immigrant's origin (need to check later)
   group_by(Nationality, Origin_group, Diploma) %>%
-  summarise(Avg_Annual_Count = mean(Count, na.rm = TRUE), .groups = "drop") %>%
+  summarise(Count = mean(Count, na.rm = TRUE), .groups = "drop") %>%
   mutate(Year = as.factor(2005))
 
 write_parquet(shift_2005_avg, "shift_2005.parquet")
