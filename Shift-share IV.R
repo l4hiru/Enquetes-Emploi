@@ -474,14 +474,12 @@ process_quarter <- function(file_path, year = 2015) {
   data <- data %>%
     mutate(
       Origin = case_when(
-        nat14 %in% c("11", "12", "13") ~ "South_Europe",
+        nat14 %in% c("11", "12", "13") ~ "South Europe",
         nat14 %in% c("14", "15") ~ "Europe",
         nat14 %in% c("21", "22", "23") ~ "Maghreb",
         nat14 == "24" ~ "Africa",
-        nat14 %in%  c("32", "51") ~ "Asia",
-        nat14 %in% c("41") ~ "America",
-        nat14 %in% c("31") ~ "Turkey",
-      )
+        nat14 %in%  c("31", "32", "51") ~ "Asia",
+        nat14 %in% c("41") ~ "America")
     )
   
   # Agrégation par catégorie
@@ -574,14 +572,12 @@ process_quarter <- function(file_path, year = 2020) {
   data <- data %>%
     mutate(
       Origin = case_when(
-        nat14 %in% c("11", "12", "13") ~ "South_Europe",
+        nat14 %in% c("11", "12", "13") ~ "South Europe",
         nat14 %in% c("14", "15") ~ "Europe",
         nat14 %in% c("21", "22", "23") ~ "Maghreb",
         nat14 == "24" ~ "Africa",
-        nat14 %in%  c("32", "51") ~ "Asia",
-        nat14 %in% c("41") ~ "America",
-        nat14 %in% c("31") ~ "Turkey",
-      )
+        nat14 %in%  c("31", "32", "51") ~ "Asia",
+        nat14 %in% c("41") ~ "America")
     )
   
   # Agrégation par catégorie
