@@ -273,7 +273,7 @@ process_quarter <- function(file_path, year = 2005) {
                  "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
         NAT28 %in% c("11", "12", "13") ~ "Maghreb",
         NAT28 == "14" ~ "Africa",
-        NAT28 %in%  c("15", "45") ~ "Asia",
+        NAT28 %in%  c("15", "45", "60") ~ "Asia", #60 : Autre
         NAT28 %in% c("51", "52") ~ "America"
       ))
   
@@ -379,7 +379,7 @@ process_quarter <- function(file_path, year = 2010) {
                      "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
         NAT28 %in% c("11", "12", "13") ~ "Maghreb",
         NAT28 == "14" ~ "Africa",
-        NAT28 %in%  c("15", "45") ~ "Asia",
+        NAT28 %in%  c("15", "45", "60") ~ "Asia", #60: autre
         NAT28 %in% c("51", "52") ~ "America"
       )
     )
