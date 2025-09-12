@@ -640,3 +640,144 @@ shift_2020_avg <- shift_2020_all %>%
   mutate(Year = as.factor(2020))
 
 write_parquet(shift_2020_avg, "shift_2020.parquet")
+
+
+
+
+
+
+
+########## NEW SHIFT - G. VERDUGO (11 NATIONALITIES) #########
+
+
+#I) 2000 Year 
+
+#A) Variables
+
+data_2000 <- read_dta("2000/empl00qi.dta")
+
+data_2000 <- data_2000 %>%
+  mutate(
+    Nationality = case_when(
+      n == "01" ~ "Native",                     # Français de naissance
+      n == "02" ~ "Naturalized",               # Français par acquisition
+      n %in% c("11", "12", "13", "14", "15", 
+               "21", "22", "23", "24", "25", "26", "27", "28", "29", 
+               "31", "32", 
+               "41", "42", "43", "44", "45", "46", "47", "48",
+               "51", "52", "60") ~ "Immigrant", # Tous les codes étrangers
+    )
+  )
+
+freq(data_2000$Nationality)
+
+
+data_2000 <- data_2000 %>%
+  mutate(
+    Origin = case_when(
+      n %in% c("21") ~ "Italy",
+      n %in% c("31") ~ "Spain",
+      n %in% c("32") ~ "Portugal",
+      n %in% c("22", "23", "24", "25", "26", "27", "28", "29", 
+               "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
+      n %in% c("11") ~ "Algeria",
+      n %in% c("12") ~ "Tunisia",
+      n %in% c("13") ~ "Morocco",
+      n == "14" ~ "Africa",
+      n %in%  c("15") ~ "Asia",
+      n == "45" ~ "Turkey",
+      n %in% c("51", "52") ~ "America"
+    ))
+
+freq(data_2000$Origin)
+
+#B) Totals
+
+immi_2000 <- data_2000 %>%
+  filter(Nationality == "Immigrant") %>%
+  drop_na(Origin, extri) %>%   
+  group_by(Origin) %>%
+  summarise(
+    total_immi_2000 = sum(extri),
+    .groups = "drop"
+  )
+
+write_parquet(immi_2000, "shift_immi2000_10nat.parquet")
+
+
+
+
+# 2005 
+
+data_2005 <- read_dta("2005/indiv051.dta")
+data_2005_2 <- read_dta("2005/indiv052.dta")
+data_2005_3 <- read_dta("2005/indiv053.dta")
+data_2005_4 <- read_dta("2005/indiv054.dta")
+
+process_quarter <- function(file_path, year = 2005) {
+  
+  data <- read_dta(file_path)
+  
+  # Recodage des nationalités
+  data <- data %>%
+    mutate(Nationality = recode(NFR,
+                                "1" = "Native",
+                                "2" = "Naturalized",
+                                "3" = "Immigrant"))
+    
+  # Recodage des origines
+  data <- data %>%
+    mutate(
+      Origin = case_when(
+        NAT28 %in% c("21") ~ "Italy",
+        NAT28 %in% c("31") ~ "Spain",
+        NAT28 %in% c("32") ~ "Portugal",
+
+        NAT28 %in% c("22", "23", "24", "25", "26", "27", "28", "29", 
+                     "41", "42", "43", "44", "46", "47", "48") ~ "Europe",
+
+        NAT28 %in% c("11") ~ "Algeria",
+        NAT28 %in% c("12") ~ "Tunisia",
+        NAT28 %in% c("13") ~ "Morocco",
+
+        NAT28 == "14" ~ "Africa",
+
+        NAT28 %in%  c("15", "60") ~ "Asia", # 60 : Other
+
+        NAT28 %in% c("45") ~ "Turkey",
+
+        NAT28 %in% c("51", "52") ~ "America"
+      )
+    )
+  
+  # Agrégation uniquement pour les immigrés
+  immi <- data %>%
+    filter(Nationality == "Immigrant") %>%
+    group_by(Origin) %>%
+    summarise(
+      total_immi_2005 = sum(EXTRI, na.rm = TRUE),
+      .groups = "drop"
+    )}
+
+files_2005 <- c("2005/indiv051.dta", 
+                "2005/indiv052.dta", 
+                "2005/indiv053.dta", 
+                "2005/indiv054.dta")
+
+# Appliquer la fonction à tous les fichiers
+all_quarters <- lapply(files_2005, process_quarter)
+
+# Fusionner tous les trimestres en une seule base
+shift_2005_all <- bind_rows(all_quarters)
+
+shift_immi2005_avg <- shift_2005_all %>%
+  group_by(Origin) %>%
+  summarise(total_immi_2005 = mean(total_immi_2005, na.rm = TRUE), .groups = "drop")
+
+sum(shift_immi2005_avg$total_immi_2005)
+
+
+
+
+
+write_parquet(shift_immi2005_avg, "shift_immi2005_11nat")
