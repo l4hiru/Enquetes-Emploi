@@ -67,6 +67,17 @@ data_2000 <- data_2000 %>%
 
 freq(data_2000$Origin)
 
+data_2000 <- data_2000 %>%
+  mutate(Diploma = case_when(
+    ddipl  == "" ~ NA_character_,  # < 15 yo, N.A
+    ddipl  %in% c("7") ~ "Low",  # No diploma, CEP
+    ddipl  %in% c("5", "6") ~ "Mid",  # BEPC, BEP, CAP, etc.
+    ddipl  %in% c("1", "3", "4") ~ "High",  # BAC or more
+  )) %>%
+  mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
+
+freq(data_2000$Diploma)
+
 #B) Totals
 
 immi_2000 <- data_2000 %>%
@@ -78,6 +89,19 @@ immi_2000 <- data_2000 %>%
     .groups = "drop"
   )
 
+shift_2000 <- data_2000 %>%
+  filter(!is.na(Diploma)) %>%
+  mutate(
+    Origin = ifelse(Nationality %in% c("Native", "Naturalized"), "French", Origin)
+  ) %>%
+  group_by(Nationality, Origin, Diploma) %>%
+  summarise(
+    shift = sum(extri, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  drop_na()
+
+write_parquet(shift_2000, "shift_2000_11nat_dipp.parquet")
 
 
 
@@ -93,6 +117,15 @@ process_quarter <- function(file_path, year = 2005) {
                                 "1" = "Native",
                                 "2" = "Naturalized",
                                 "3" = "Immigrant"))
+  
+  data <- data %>%
+    mutate(Diploma = case_when(
+      DDIPL == "" ~ NA_character_,
+      DDIPL %in% c("7") ~ "Low",
+      DDIPL %in% c("5", "6") ~ "Mid",
+      DDIPL %in% c("1", "3", "4") ~ "High"
+    )) %>%
+    mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
     
   # Recodage des origines
   data <- data %>%
@@ -120,13 +153,18 @@ process_quarter <- function(file_path, year = 2005) {
     )
   
   # Agrégation uniquement pour les immigrés
-  immi <- data %>%
-    filter(Nationality == "Immigrant") %>%
-    group_by(Origin) %>%
+  shift_2005 <- data %>%
+    filter(!is.na(Diploma)) %>%
+    mutate(
+      Origin = ifelse(Nationality %in% c("Native", "Naturalized"), "French", Origin)
+    ) %>%
+    group_by(Nationality, Origin, Diploma) %>%
     summarise(
-      total_immi_2005 = sum(EXTRI, na.rm = TRUE),
+      shift = sum(EXTRI, na.rm = TRUE),
       .groups = "drop"
-    )}
+    ) %>%
+    drop_na()
+  }
 
 files_2005 <- c("2005/indiv051.dta", 
                 "2005/indiv052.dta", 
@@ -139,11 +177,13 @@ all_quarters <- lapply(files_2005, process_quarter)
 # Fusionner tous les trimestres en une seule base
 shift_2005_all <- bind_rows(all_quarters)
 
-shift_immi2005_avg <- shift_2005_all %>%
-  group_by(Origin) %>%
-  summarise(total_immi_2005 = mean(total_immi_2005, na.rm = TRUE), .groups = "drop")
+shift_2005_avg <- shift_2005_all %>%
+  group_by(Nationality, Origin, Diploma) %>%
+  summarise(shift = mean(shift, na.rm = TRUE), .groups = "drop")
 
-sum(shift_immi2005_avg$total_immi_2005)
+sum(shift_2005_avg$shift)
+
+#write_parquet(shift_2005_avg, "shift_2005_11nat_dipp.parquet")
 
 
 
@@ -160,6 +200,15 @@ process_quarter <- function(file_path, year = 2010) {
                                 "1" = "Native",
                                 "2" = "Naturalized",
                                 "3" = "Immigrant"))
+                                
+  data <- data %>%
+    mutate(Diploma = case_when(
+      DDIPL == "" ~ NA_character_,
+      DDIPL %in% c("7") ~ "Low",
+      DDIPL %in% c("5", "6") ~ "Mid",
+      DDIPL %in% c("1", "3", "4") ~ "High"
+    )) %>%
+    mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
   
   # Recodage des origines
   data <- data %>%
@@ -186,16 +235,17 @@ process_quarter <- function(file_path, year = 2010) {
     )
   
   # Agrégation uniquement pour les immigrés
-  immi <- data %>%
-    filter(Nationality == "Immigrant") %>%
-    group_by(Origin) %>%
+  shift_2010 <- data %>%
+    filter(!is.na(Diploma)) %>%
+    mutate(
+      Origin = ifelse(Nationality %in% c("Native", "Naturalized"), "French", Origin)
+    ) %>%
+    group_by(Nationality, Origin, Diploma) %>%
     summarise(
-      total_immi = sum(EXTRI, na.rm = TRUE),
+      shift = sum(EXTRI, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    mutate(Year = as.factor(year))
-  
-  return(immi)
+    drop_na()
 }
 
 files_2010 <- c("2010/indiv101.dta", 
@@ -210,9 +260,11 @@ all_quarters <- lapply(files_2010, process_quarter)
 shift_2010_all <- bind_rows(all_quarters)
 
 # Moyenne annuelle par origine
-shift_immi2010_avg <- shift_2010_all %>%
-  group_by(Origin) %>%
-  summarise(total_immi_2010 = mean(total_immi, na.rm = TRUE), .groups = "drop")
+shift_2010_avg <- shift_2010_all %>%
+  group_by(Nationality, Origin, Diploma) %>%
+  summarise(shift = mean(shift, na.rm = TRUE), .groups = "drop")
+
+write_parquet(shift_2010_avg, "shift_2010_11nat_dipp.parquet")
 
 
 # 2015 
@@ -227,6 +279,15 @@ process_quarter <- function(file_path, year = 2015) {
                                 "1" = "Native",
                                 "2" = "Naturalized",
                                 "3" = "Immigrant"))
+  
+    data <- data %>%
+    mutate(Diploma = case_when(
+      ddipl == "" ~ NA_character_,
+      ddipl %in% c("7") ~ "Low",
+      ddipl %in% c("5", "6") ~ "Mid",
+      ddipl %in% c("1", "3", "4") ~ "High",
+    )) %>%
+    mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
   
   # Recodage des origines (NAT14, 14 postes)
   data <- data %>%
@@ -253,16 +314,17 @@ process_quarter <- function(file_path, year = 2015) {
     )
   
   # Agrégation uniquement pour les immigrés
-  immi <- data %>%
-    filter(Nationality == "Immigrant") %>%
-    group_by(Origin) %>%
+  shift_2015 <- data %>%
+    filter(!is.na(Diploma)) %>%
+    mutate(
+      Origin = ifelse(Nationality %in% c("Native", "Naturalized"), "French", Origin)
+    ) %>%
+    group_by(Nationality, Origin, Diploma) %>%
     summarise(
-      total_immi = sum(extri, na.rm = TRUE),
+      shift = sum(extri, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    mutate(Year = as.factor(year))
-  
-  return(immi)
+    drop_na()
 }
 
 files_2015 <- c("2015/INDIV151.dta", 
@@ -277,9 +339,9 @@ all_quarters <- lapply(files_2015, process_quarter)
 shift_2015_all <- bind_rows(all_quarters)
 
 # Moyenne annuelle par origine
-shift_immi2015_avg <- shift_2015_all %>%
-  group_by(Origin) %>%
-  summarise(total_immi_2015 = mean(total_immi, na.rm = TRUE), .groups = "drop")
+shift_2015_avg <- shift_2015_all %>%
+  group_by(Nationality, Origin, Diploma) %>%
+  summarise(shift = mean(shift, na.rm = TRUE), .groups = "drop") # One weird row for Europe/High but no nationality status
 
 
 
@@ -298,6 +360,15 @@ process_quarter <- function(file_path, year = 2020) {
                                 "1" = "Native",
                                 "2" = "Naturalized",
                                 "3" = "Immigrant"))
+  
+    data <- data %>%
+    mutate(Diploma = case_when(
+      ddipl == "" ~ NA_character_,
+      ddipl %in% c("7") ~ "Low",
+      ddipl %in% c("5", "6") ~ "Mid",
+      ddipl %in% c("1", "3", "4") ~ "High",
+    )) %>%
+    mutate(Diploma = factor(Diploma, levels = c("Low", "Mid", "High")))
   
   # Recodage des origines (même nomenclature NAT14 qu’en 2015)
   data <- data %>%
@@ -324,16 +395,17 @@ process_quarter <- function(file_path, year = 2020) {
     )
   
   # Agrégation uniquement pour les immigrés
-  immi <- data %>%
-    filter(Nationality == "Immigrant") %>%
-    group_by(Origin) %>%
+  shift_2020 <- data %>%
+    filter(!is.na(Diploma)) %>%
+    mutate(
+      Origin = ifelse(Nationality %in% c("Native", "Naturalized"), "French", Origin)
+    ) %>%
+    group_by(Nationality, Origin, Diploma) %>%
     summarise(
-      total_immi = sum(extri, na.rm = TRUE),
+      shift = sum(extri, na.rm = TRUE),
       .groups = "drop"
     ) %>%
-    mutate(Year = as.factor(year))
-  
-  return(immi)
+    drop_na()
 }
 
 files_2020 <- c("2020/INDIV201.dta", 
@@ -348,12 +420,12 @@ all_quarters <- lapply(files_2020, process_quarter)
 shift_2020_all <- bind_rows(all_quarters)
 
 # Moyenne annuelle par origine
-shift_immi2020_avg <- shift_2020_all %>%
-  group_by(Origin) %>%
-  summarise(total_immi_2020 = mean(total_immi, na.rm = TRUE), .groups = "drop")
+shift_2020_avg <- shift_2020_all %>%
+  group_by(Nationality, Origin, Diploma) %>%
+  summarise(shift = mean(shift, na.rm = TRUE), .groups = "drop")
 
 # Sauvegarde
-write_parquet(shift_immi2020_avg, "shift_2020.parquet")
+write_parquet(shift_2020_avg, "shift_2020_11nat_dipp.parquet")
 
 
 
