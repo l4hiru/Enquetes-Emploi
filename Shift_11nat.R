@@ -344,7 +344,7 @@ shift_2015_avg <- shift_2015_all %>%
   summarise(shift = mean(shift, na.rm = TRUE), .groups = "drop") # One weird row for Europe/High but no nationality status
 
 
-
+write_parquet(shift_2015_avg, "shift_2015_11nat_dipp.parquet")
 
 
 # 2020 
